@@ -61,6 +61,36 @@ def book_appointment(day: str, time_slot: str) -> str:
     
     return f"Success! I have booked the {time_slot} appointment on {day} for you."
 
+def cancel_appointment(day: str, time_slot: str) -> str:
+    """Cancels an existing appointment for a specific day and time."""
+    day_lower = day.lower()
+
+    current_directory = os.path.dirname(os.path.abspath(__file__))
+    db_path = os.path.join(current_directory, ('schedule.db'))
+
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT is_booked FROM appointments WHERE day = ? AND time_slot = ? ", (day_lower, time_slot))
+    result = cursor.fetchone()
+
+    if result is None:
+        conn.close()
+        return f"I cannot find a {time_slot} slot on {day}."
+    
+    is_booked = result[0]
+
+    if is_booked == 0:
+        conn.close()
+        return f"The {time_slot} slot on {day} is already available."
+    
+    cursor.execute("UPDATE appointments SET is_booked = 0 WHERE day = ? AND time_slot = ?", (day_lower, time_slot))
+    
+    conn.commit()
+    conn.close()
+
+    return f"Success! I have canceled the {time_slot} appointment on {day}."
+    
 # --- THE AGENT ---
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
@@ -68,16 +98,16 @@ print("Initializing AI Agent...")
 chat = client.chats.create(
     model='gemini-3.1-flash-lite',
     config=types.GenerateContentConfig(
-        tools=[check_availability, book_appointment],
+        tools=[check_availability, book_appointment, cancel_appointment],
         temperature=0.0
     )
 )
 
 # --- THE CHAT ---
-user_prompt = "I would like to book the 9:00 AM slot on Wednesday, please."
-print(f"User: {user_prompt}")
-print("AI is thinking...\n")
-
-response = chat.send_message(user_prompt)
-
-print(f"AI: {response.text}")
+print("Welcome to the Scheduling Agent. Type 'exit' to quit.")
+while True:
+    user_input = input("You: ")
+    if user_input == "exit":
+        break
+    response = chat.send_message(user_input)
+    print(f"AI: {response.text}")
