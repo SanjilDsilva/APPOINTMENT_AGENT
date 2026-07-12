@@ -10,12 +10,14 @@ conn = sqlite3.connect(db_path)
 cursor = conn.cursor()
 
 # 3. Create the table
+# 3. Create the table
 create_table_query = '''
 CREATE TABLE IF NOT EXISTS appointments (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     day TEXT NOT NULL,
     time_slot TEXT NOT NULL,
-    is_booked INTEGER DEFAULT 0
+    is_booked INTEGER DEFAULT 0,
+    customer_name TEXT DEFAULT NULL
 )
 '''
 cursor.execute(create_table_query)
