@@ -1,14 +1,16 @@
-import sqlite3
+import psycopg2
 import os
+from dotenv import load_dotenv
 
-current_directory = os.path.dirname(os.path.abspath(__file__))
-db_path = os.path.join(current_directory, ('schedule.db'))
+load_dotenv()
 
-conn = sqlite3.connect(db_path)
+conn = psycopg2.connect(os.getenv("DATABASE_URL"))
 cursor = conn.cursor()
 
-cursor.execute("UPDATE appointments SET is_booked = 0")
+cursor.execute("UPDATE appointments SET is_booked = 0, customer_name = NULL")
 conn.commit()
+
+cursor.close()
 conn.close()
 
 print("Database reset! All appointments are now available.")
