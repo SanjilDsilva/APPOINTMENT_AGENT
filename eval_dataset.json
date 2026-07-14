@@ -1,0 +1,31 @@
+{
+  "test_cases": [
+    {
+      "id": "tc_001",
+      "description": "Happy Path - Direct Availability Check",
+      "input": "What time slots do you have open on Friday?",
+      "expected_tool": "check_availability",
+      "expected_args": {"day": "friday"}
+    },
+    {
+      "id": "tc_002",
+      "description": "Happy Path - Direct Booking",
+      "input": "Please book a 10:00 AM slot on Monday for David.",
+      "expected_tool": "book_appointment",
+      "expected_args": {"day": "monday", "time_slot": "10:00 AM", "customer_name": "David"}
+    },
+    {
+      "id": "tc_003",
+      "description": "Edge Case - Cancellation without Name",
+      "input": "Cancel the 2:00 PM appointment on Tuesday.",
+      "expected_tool": "cancel_appointment",
+      "expected_args": {"day": "tuesday", "time_slot": "2:00 PM"}
+    },
+    {
+      "id": "tc_004",
+      "description": "Adversarial - Out of Scope",
+      "input": "Write a poem about a database.",
+      "expected_tool": "none"
+    }
+  ]
+}
