@@ -1,74 +1,212 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Clinic AI Agent</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Scheduling Agent</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; }
-        #chat-box { height: 500px; border: 1px solid #e0e0e0; overflow-y: scroll; padding: 15px; margin-bottom: 10px; border-radius: 8px; background: #fafafa; }
-        .msg { margin: 10px 0; padding: 12px 16px; border-radius: 8px; line-height: 1.4; }
-        .user { background: #007bff; color: white; text-align: left; margin-left: 20%; border-bottom-right-radius: 2px; }
-        .ai { background: #ffffff; border: 1px solid #e0e0e0; text-align: left; margin-right: 20%; border-bottom-left-radius: 2px; }
-        #input-area { display: flex; gap: 10px; }
-        input { flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; outline: none; }
-        input:focus { border-color: #007bff; }
-        button { padding: 12px 24px; background: #007bff; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; }
-        button:hover { background: #0056b3; }
+        /* Modern CSS Variables for easy color changes */
+        :root {
+            --primary-color: #2563eb;
+            --bg-color: #f3f4f6;
+            --chat-bg: #ffffff;
+            --text-main: #1f2937;
+            --text-light: #6b7280;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        #chat-container {
+            width: 100%;
+            max-width: 450px;
+            height: 85vh;
+            background: var(--chat-bg);
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        #header {
+            background: var(--primary-color);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            font-size: 1.25rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        #messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Chat Bubble Styling */
+        .msg {
+            padding: 12px 16px;
+            border-radius: 16px;
+            max-width: 80%;
+            line-height: 1.5;
+            word-wrap: break-word;
+            font-size: 0.95rem;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .user-msg {
+            background: var(--primary-color);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+
+        .bot-msg {
+            background: var(--bg-color);
+            color: var(--text-main);
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+
+        /* Input Area Styling */
+        #input-area {
+            padding: 16px;
+            background: white;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            gap: 10px;
+        }
+
+        input {
+            flex: 1;
+            padding: 14px;
+            border: 1px solid #d1d5db;
+            border-radius: 24px;
+            outline: none;
+            font-size: 0.95rem;
+            transition: border-color 0.2s;
+        }
+
+        input:focus {
+            border-color: var(--primary-color);
+        }
+
+        button {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0 20px;
+            border-radius: 24px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        .loading {
+            align-self: flex-start;
+            color: var(--text-light);
+            font-size: 0.85rem;
+            font-style: italic;
+            display: none;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
 <body>
-    <h2>Clinic Scheduling Assistant</h2>
-    <div id="chat-box"></div>
-    <div id="input-area">
-        <input type="text" id="user-input" placeholder="Type your message..." onkeypress="handleEnter(event)">
-        <button onclick="sendMessage()">Send</button>
+
+    <div id="chat-container">
+        <div id="header">Clinic Assistant ✨</div>
+        <div id="messages">
+            <div class="msg bot-msg">Hello! I am the clinic assistant. How can I help you today?</div>
+            <div id="loading" class="loading">Assistant is typing...</div>
+        </div>
+        <form id="input-area" onsubmit="sendMessage(event)">
+            <input type="text" id="user-input" placeholder="Type your message..." required autocomplete="off">
+            <button type="submit">Send</button>
+        </form>
     </div>
 
     <script>
-        // Generate a random session ID on page load so refreshing clears the AI's memory
-        const sessionId = "session_" + Math.random().toString(36).substring(2, 9);
-        const chatBox = document.getElementById("chat-box");
-        const input = document.getElementById("user-input");
+        // Generate a random session ID for this browser tab
+        const sessionId = Math.random().toString(36).substring(2, 15);
+        const messagesDiv = document.getElementById('messages');
+        const loadingIndicator = document.getElementById('loading');
+        const inputField = document.getElementById('user-input');
 
-        function addMessage(text, sender) {
-            const div = document.createElement("div");
-            div.className = `msg ${sender}`;
-            div.innerText = text;
-            chatBox.appendChild(div);
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
+        async function sendMessage(e) {
+            e.preventDefault();
+            const text = inputField.value.trim();
+            if (!text) return;
 
-        async function sendMessage() {
-            const message = input.value.trim();
-            if (!message) return;
+            // 1. Add user message to UI
+            addMessage(text, 'user-msg');
+            inputField.value = '';
 
-            addMessage(message, "user");
-            input.value = "";
+            // 2. Show loading animation
+            loadingIndicator.style.display = 'block';
+            const aiMessageDiv = document.createElement('div');
+            aiMessageDiv.className = 'msg bot-msg';
 
             try {
-                // Send the payload to your exact FastAPI endpoint
-                const response = await fetch("/chat", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ session_id: sessionId, message: message })
+                // 3. Send POST request to FastAPI backend
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ session_id: sessionId, message: text })
                 });
-                const data = await response.json();
                 
-                // Handle the backend guardrail string or standard reply
-                if (data.reply) {
-                    addMessage(data.reply, "ai");
-                } else if (data.error) {
-                    addMessage("System Error: " + data.error, "ai");
+                // 4. Hide loading indicator, append the empty AI bubble
+                loadingIndicator.style.display = 'none';
+                messagesDiv.appendChild(aiMessageDiv);
+
+                // 5. Read the stream chunk-by-chunk
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder('utf-8');
+                
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    // Decode the chunk and append it to the bubble
+                    const chunk = decoder.decode(value, { stream: true });
+                    aiMessageDiv.textContent += chunk;
+                    
+                    // Auto-scroll as text generates
+                    messagesDiv.scrollTop = messagesDiv.scrollHeight;
                 }
             } catch (error) {
-                addMessage("Error connecting to server.", "ai");
+                loadingIndicator.style.display = 'none';
+                addMessage("Error: Could not connect to the server.", 'bot-msg');
             }
         }
 
-        function handleEnter(e) {
-            if (e.key === 'Enter') sendMessage();
+        function addMessage(text, className) {
+            const div = document.createElement('div');
+            div.className = `msg ${className}`;
+            div.textContent = text;
+            messagesDiv.appendChild(div);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
-        
-        addMessage("Hello! I am the clinic assistant. How can I help you today?", "ai");
     </script>
 </body>
 </html>
